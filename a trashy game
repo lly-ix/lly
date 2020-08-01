@@ -1,0 +1,556 @@
+import sys
+import os
+from random import randint
+from textwrap import dedent
+
+# 将保饱食度，背包，时间定，当前所在地区，物品中文名义成全局变量
+satiation = 10
+bag = {'meat': 0, 'log': 0, 'stone': 0,'iron': 0,'desk': 0,'wool': 0,'bed':0
+            ,'wooden_sword':0,'wooden_pickax':0,'stone_sword':0,
+            'iron_sword':0}
+mertial_name = ['肉', '原木', '石头', '铁', '工作台','羊毛','床','木剑','木镐'
+                ,'石剑','铁剑']
+time = 24
+SCENE = None
+SCENES = {}
+
+# 在SCENES通过值查键
+def get_index(value):
+    for (k, v) in SCENES.items() :
+        if(value == v.class_name()):
+            return k
+
+# 定义可以制作的东西的类
+class Product(object):
+    class bed(object):        #制作床
+        def produce(self):
+            global bag
+            print("获得:床x1\n\n\n")
+            bag['wool'] = bag.get('wool') - 3
+            beg['log'] = bag.get('log') - 6
+            bag['bed'] = bag.get('bed') + 1
+    class wooden_sword(object):       #制作木剑
+        def produce(self):
+            global bag
+            print("获得:木剑x1\n\n\n")
+            bag['log'] = bag.get('log') - 5
+            bag['wooden_sword'] = bag.get('wooden_sword') + 1
+    class wooden_pickax(object):     #制作木镐
+        def produce(self):
+            global bag
+            print("获得:木镐x1\n\n\n")
+            bag['log'] = bag.get('log') - 4
+            bag['wooden_pickax'] = bag.get('wooden_pickax') + 1
+    class stone_sword(object):       #制作石剑
+        def produce(self):
+            global bag
+            print("获得:石剑x1\n\n\n")
+            bag['log'] = bag.get('log') - 3
+            bag['stone'] = bag.get('stone') - 4
+            bag['stone_sword'] = bag.get('stone_sword') + 1
+    class iron_sword(object):        #制作铁剑
+        def produce(self):
+            global bag
+            print("获得:铁剑x1\n\n\n")
+            bag['log'] = bag.get('log') - 3
+            bag['stone'] = bag.get('stone') - 3
+            bag['iron'] = bag.get('iron') -1
+            bag['iron_sword'] = bag.get('iron_sword') + 1
+
+# 定义收集大类，但好像没用
+class Collect(object):
+
+    def __init__(self):
+        pass
+
+# 砍树
+class Cut_down_tree(Collect):
+
+    def running(self):
+        global time
+        global bag
+        global satiation
+
+        print("\n你选择了砍树，你获得了:原木x2\n\n\n")
+
+        time -= 1
+        satiation -= 1
+        bag['log'] = bag.get('log') + 2
+
+#杀羊
+class Kill_sheep(Collect):
+    def running(self):
+        global time
+        global bag
+        global satiation
+
+        print("\n你选择了捕羊，你获得了:羊毛x1，肉x1\n\n\n")
+
+        time -= 1
+        satiation -= 1
+        bag['wool'] = bag.get('wool') + 1
+        bag['meat'] = bag.get('meat') + 1
+
+#捕猎
+class Kill_other_animal(Collect):
+    def running(self):
+        global time
+        global bag
+        global satiation
+
+        other_annimal = {1: '牛', 2: '猪', 3:'鸡', 4:'兔'}
+        meat_amount = {1: 2, 2: 2, 3: 1, 4: 1}
+        random_num = randint(1,4)
+
+#        print(other_annimal)
+#        print(random_num)
+        print(f"\n你选择了狩猎，你捕捉到了1只{other_annimal.get(random_num)},")
+        print(f"获得：肉x{meat_amount.get(random_num)}\n\n\n")
+        time -= 1
+        satiation -= 1
+        bag['meat'] = bag.get('meat') + meat_amount.get(random_num)
+
+#制作
+class Creating(Collect):
+
+    def running(self):
+        global time
+        global satiation
+
+        print("\n你选择了制作，", end = '')
+
+        if not bag.get('desk'):
+            print('你未拥有工作台，你消耗了“原木” x 4制作了工作台\n\n\n')
+            time -= 1
+            satiation -= 1
+            bag['log'] = bag.get('log') - 4
+            bag['desk'] = 1
+            return None
+
+        print("你已经拥有了工作台，选择你要制作的物品")
+        creat_tasks = {}
+        order_num = 0
+        task = Product()
+        if bag.get('wool') >= 3 and bag.get('log') >= 6:
+            print(f"{order_num}、床", end = '    ')
+            creat_tasks[order_num] = task.bed()
+            order_num += 1
+        if bag.get('log') >= 5:
+            print(f"{order_num}、木剑", end = '    ')
+            creat_tasks[order_num] = task.wooden_sword()
+            order_num += 1
+        if bag.get('log') >= 4:
+            print(f"{order_num}、木镐", end = '    ')
+            creat_tasks[order_num] = task.wooden_pickax()
+            order_num += 1
+        if bag.get('log') >= 3 and bag.get('stone') > 4:
+            print(f"{order_num}、石剑", end = '    ')
+            creat_tasks[order_num] = task.stone_sword()
+            order_num += 1
+        if bag.get('log') >=3 and bag.get('stone') >=3 and bag.get('iron'):
+            print(f"{order_num}、铁剑", end = '    ')
+            creat_tasks[order_num] = task.iron_sword()
+            order_num += 1
+
+        opt = input ("\n输入你的选择>>> ")
+
+        creat_tasks.get(int(opt)).produce()
+
+        time -= 1
+        satiation -= 1
+
+#游走
+class Traveling(Collect):
+    def running(self):
+        global time
+        global satiation
+        global SCENE
+
+        print("\n你选择了游走，地形切换\n\n\n")
+
+        random_num = randint(0, 3)
+        while SCENES.get(random_num).class_name() == SCENE.class_name():
+            random_num = randint(0, 3)
+        SCENE = SCENES.get(random_num)
+
+        time -= 3
+        satiation -= 3
+
+#进食
+class Eating(Collect):
+    def running(self):
+        global satiation
+        global time
+        global bag
+
+        print("你选择了进食，饱食度 + 3\n\n\n")
+        bag['meat'] = bag.get('meat') - 1
+        satiation += 3
+        if satiation >= 10:
+            satiation = 10
+        time -= 1
+
+#挖矿
+class Mining(Collect):
+    def running(self):
+        global satiation
+        global time
+        global bag
+
+        print("你选择了挖矿，获得:", end='')
+        random_num = randint(0, 9)
+        if random_num <= 8:
+            print("石头x1\n\n\n")
+            bag['stone'] = bag.get('stone') + 1
+        else:
+            print("铁x1\n\n\n")
+            bag['iron'] = bag.get('iron') + 1
+        satiation -= 1
+        time -= 2
+
+#地形的父类
+class Scene(object):
+
+    def __init__(self):
+        pass
+    # 打印出基本的信息
+    def start(self):
+
+        if time <= 0:
+            Judge(bag)
+        print(f"饱食度：{int(satiation)}/10\t\t时间：{int(time)}/24")
+        print("背包：", end='')
+
+        i = 0
+        for material in bag.keys():
+            print(mertial_name[i],'x', bag.get(material), end = '   ')
+            #以“羊毛”为分界点，将背包中的物品分两行打印
+            if mertial_name[i] == '羊毛':
+                print('')
+            i += 1
+
+        print('\n')
+
+    #判断能否进食
+    def eating_judge(self):
+
+        if bag.get('meat'):
+            return True
+        return False
+
+    #判断能否制作物品
+    def creating_judge(self):
+
+        if bag.get('log') < 3:
+            return False
+        elif bag.get('log') >= 4:
+            return True
+        elif bag.get('wool') >= 3:
+            return True
+        elif bag.get('stone') >= 4:
+            return True
+        elif bag.get('stone') == 3 and bag.get('iron') >= 1:
+            return True
+        else:
+            return False
+
+    #判断能否游走
+    def travel_judge(self):
+
+        if time >=3:
+            return True
+        return False
+
+#森林地形
+class Forest(Scene):
+    def play(self):
+        self.start()
+        order_task = {1: Cut_down_tree()}
+        order_num = 2
+
+        print("\n\n在这个地形中，你可以进行砍树(1)", end = '')
+
+        rand_num_1 = randint(0, 9)
+        if rand_num_1 <= 1:
+            print(f", 杀羊({order_num})", end = '')
+            order_task[order_num] = Kill_sheep()
+            order_num +=1
+
+        rand_num_2 = randint(0, 9)
+        if rand_num_2 <= 3:
+            print(f", 狩猎({order_num})", end = '')
+            order_task[order_num] = Kill_other_animal()
+            order_num += 1
+
+        if self.eating_judge():
+            print(f"，进食({order_num})", end = '')
+            order_task[order_num] = Eating()
+            order_num += 1
+
+        if self.creating_judge():
+            print(f"，制造({order_num})", end = '')
+            order_task[order_num] = Creating()
+            order_num += 1
+
+        if self.travel_judge():
+            print(f"，游走({order_num})")
+            order_task[order_num] = Traveling()
+
+
+        opt = input("\n输入你要做的事>>> ")
+        task = order_task.get(int(opt))
+#        print("task=",task)
+        task.running()
+
+    #范围函数名函数，主要用于字典查询
+    def class_name(self):
+        return "Forest"
+
+#沙漠地形
+class Desert(Scene):
+
+    def play(self):
+        self.start()
+        order_task = {}
+        order_num = 0
+
+        print("\n\n在这个地形中，你可以等死(建议离开沙漠)", end = '')
+
+        if self.travel_judge():
+            print(f"，游走({order_num})")
+            order_task[order_num] = Traveling()
+            order_num += 1
+
+        rand_num_1 = randint(0, 9)
+        if rand_num_1 <= 1:
+            print(f"，狩猎({order_num})", end = '')
+            order_task[order_num] = Kill_other_animal()
+            order_num += 1
+
+        if self.eating_judge():
+            print(f"，进食({order_num})", end = '')
+            order_task[order_num] = Eating()
+            order_num += 1
+
+        if self.creating_judge():
+            print(f"，制造({order_num})", end = '')
+            order_task[order_num] = Creating()
+            order_num += 1
+
+        opt = input("\n输入你要做的事>>> ")
+        task = order_task.get(int(opt))
+#        print("task=",task)
+        task.running()
+
+    def class_name(self):
+        return "Desert"
+
+#山地地形
+class Mountain(Scene):
+
+    def play(self):
+        self.start()
+        order_task = {1: Cut_down_tree()}
+        order_num = 2
+
+        print("\n\n在这个地形中，你可以进行砍树(1)", end = '')
+
+        if self.eating_judge():
+            print(f"，进食({order_num})", end = '')
+            order_task[order_num] = Eating()
+            order_num += 1
+
+        if self.creating_judge():
+            print(f"，制造({order_num})", end = '')
+            order_task[order_num] = Creating()
+            order_num += 1
+
+        if self.travel_judge():
+            print(f"，游走({order_num})")
+            order_task[order_num] = Traveling()
+            order_num += 1
+
+        if bag.get('wooden_pickax') and time >= 2:
+            print(f"，采矿({order_num})")
+            order_task[order_num] = Mining()
+            order_num += 1
+
+
+        opt = input("\n输入你要做的事>>> ")
+        task = order_task.get(int(opt))
+#        print("task=",task)
+        task.running()
+
+    def class_name(self):
+        return "Mountain"
+
+#平原地形
+class Plain(Scene):
+
+    def play(self):
+        self.start()
+        order_task = {1: Cut_down_tree()}
+        order_num = 2
+
+        print("\n\n在这个地形中，你可以进行砍树(1)", end = '')
+
+        rand_num_1 = randint(0, 9)
+        if rand_num_1 <= 4:
+            print(f", 杀羊({order_num})", end = '')
+            order_task[order_num] = Kill_sheep()
+            order_num +=1
+
+        rand_num_2 = randint(0, 9)
+        if rand_num_2 <= 6:
+            print(f", 狩猎({order_num})", end = '')
+            order_task[order_num] = Kill_other_animal()
+            order_num += 1
+
+        if self.eating_judge():
+            print(f"，进食({order_num})", end = '')
+            order_task[order_num] = Eating()
+            order_num += 1
+
+        if self.creating_judge():
+            print(f"，制造({order_num})", end = '')
+            order_task[order_num] = Creating()
+            order_num += 1
+
+        if self.travel_judge():
+            print(f"，游走({order_num})")
+            order_task[order_num] = Traveling()
+
+
+        opt = input("\n输入你要做的事>>> ")
+        task = order_task.get(int(opt))
+#        print("task=",task)
+        task.running()
+
+    def class_name(self):
+        return "Plain"
+
+#死亡
+class Death(object):
+
+    death_types = {'cowordice': """
+                    天空中的一道闪电劈了下来,你被烧
+                    成一块木炭,对于你，或许这是最好的结局吧...\n\n\n
+                    *下次争取活过1分钟!\n""",
+                    'starve': """你饿死了，黑夜还没到来就死了\n\n""",
+                    'sword':"""
+                    黑夜已到，你用手中的剑与僵尸搏斗，最终还是寡不敌众，
+                    成为了僵尸们的夜宵\n\n\n""",
+                    'hand':"""
+                    黑夜已到，你手无寸铁，你幻想着空手打败僵尸，但幻想终
+                    究只是幻想，你倒在了血泊中，看僵尸们一步步吞噬你的身体
+                    ......\n\n\n"""
+                    }
+
+
+    def enter(self, reason):
+        print(dedent(self.death_types.get(reason)))
+        print("挑战失败")
+        exit(1)
+
+#胜利
+class Victory(object):
+    won_types = {'sleep':"黑夜已到，你铺开床，美美地睡了一觉\n\n",
+                'house':"黑夜已到，你用原木造了一间房子，躲过了僵尸的攻击\n\n",
+                'sword':"黑夜已到，你拿起了手中的剑，与僵尸展开了一番厮杀\n\n",
+                'hand':"黑夜已到，你手无寸铁，但你依旧没有退缩，勇敢地向僵尸走了过去\n\n",
+                }
+    def enter(self, reason):
+        print(self.won_types.get(reason))
+        print(dedent("""
+                天亮了
+                阳光洒满了大地
+                一切都是那么的美好
+                恭喜你！你活了下来
+                你是真正的勇者!\n
+                """))
+        print("挑战成功")
+        exit(0)
+
+#初始化地形，但好像通过全局变量操作就可以，这样太麻烦
+class Map(object):
+
+    scenes_name = {0:'森林',1:'沙漠',2: '山地',
+        3:'平原',}
+
+
+    def __init__(self):
+        global SCENE
+        random_num = randint(0, 3)
+#        random_num = 2
+        self.current_scene = SCENES.get(random_num)
+        self.current_scene_name = self.scenes_name.get(random_num)
+        SCENE = self.current_scene
+
+#游戏
+class Player(object):
+
+#    self.satiation = 10
+#    self.bag = {}
+#    self.time = 24
+
+    def __init__(self):
+        self.scene = Map()           #玩家当前所在地形
+        self.beginning()
+
+
+    def beginning(self):
+        print(dedent("""
+            某天早上起床，发现来到一片新的大陆，你只身一人，你身上什么东西也没有，
+            你必须在夜晚来临之前收集好物资度过第一个夜晚，才能取得胜利，你要接受
+            挑战吗？
+            """))
+
+        choose = input("输入你的选择：\n0:接受挑战\t1:我要回家\n>>> ")
+        if '1' in choose:
+#            print(0)
+            self.scene.current_scene = Death()
+            self.scene.current_scene.enter('cowordice')
+
+    def play(self):
+        pass
+        while time:
+            if satiation <= 0 :
+                d = Death()
+                d.enter('star')
+
+            print(f"地形：{self.scene.scenes_name.get(get_index(SCENE.class_name()))}")
+            SCENE.play()
+
+        v = Victory()
+        d = Death()
+        random_num = randint(0, 9)
+
+        if bag.get('bed'):
+            v.enter('sleep')
+        elif bag.get('log') >= 20:
+            v.enter('house')
+        elif bag.get('wooden_sword'):
+            if(random_num >= 2):
+                d.enter('sword')
+            else:
+                v.enter('sword')
+        elif  bag.get('stone_sword'):
+            if(random_num <= 3):
+                v.enter('sword')
+            else:
+                d.enter('sword')
+        elif bag.get('iron_sword'):
+            if(random_num <= 5):
+                v.enter('sword')
+            else:
+                d.enter('sword')
+        else:
+            if(random_num ==0 ):
+                v.enter('hand')
+            else:
+                d.enter('hand')
+
+SCENES = {0:Forest(),1:Desert(),2:Mountain(),3:Plain(),4:Death(),5:Victory(),}
+
+player = Player()
+player.play()
